@@ -1,5 +1,6 @@
 #include "frame.h"
 #include "error_morse_avr.h"
+#include <stdlib.h>
 #include <pbn.h>
 #define DEBUGGER 1
 
@@ -12,20 +13,86 @@ static uint8_t intents = 0;
 static void send_message(void);
 static void receive_confirmation(void);
 
+void convert(char * to_convert,char letter){
+	switch(letter){
+		case 'A':
+			to_convert[0] = 'A';
+			to_convert[1] = '1';
+			to_convert[2] = '8';
+			to_convert[3] = '\0';
+			break;
+
+		case 'B':
+			to_convert[0] = 'B';
+			to_convert[1] = 'F';
+			to_convert[2] = 'A';
+			to_convert[3] = '\0';
+			break;
+
+		default:
+			break;
+
+	}
+}
+
 static void receive_confirmation(void){
 	if(DEBUGGER){
 		print("SENT");
 		print("RECEIVING A or B... ");
 	}
+	char resposta[4];
 	rx = (block_morse) missatge_rx;
-	
-	if(ether_can_get()){
-	ether_block_get(rx); // Rebem el valor A o B + checksum
-	}
-	if(test_crc_morse(rx)){ //Comprovem si el morse és correcte
-		switch(estat_tx){
-			ca
 
+	if(ether_can_get()){
+		ether_block_get(rx); // Rebem el valor A o B + checksum
+
+		if(test_crc_morse((char *)rx)){ //Comprovem si el morse és correcte
+			switch(estat_tx){
+				case CONFIRA:
+					convert(resposta,'A');
+					if(DEBUGGER){
+						print("A SENDING");
+						print(resposta);
+					}
+					ether_block_put((block_morse)resposta);
+					break;
+
+				case CONFIRB:
+					convert(resposta,'B');
+					if(DEBUGGER){
+						print("B SENDING");
+						print(resposta);
+					}
+					ether_block_put((block_morse)resposta);
+					break;
+
+				default:
+					break;
+			}
+		}
+
+
+		else{
+			switch(estat_tx){
+				case CONFIRA:
+					convert(resposta,'B');
+					ether_block_put((block_morse)resposta);
+					break;
+
+					case CONFIRB:
+					convert(resposta,'A');
+					ether_block_put((block_morse)resposta);
+					break;
+
+					default:
+						break;
+				}
+			}
+	}
+
+	else{
+		if(DEBUGGER){
+			print("CAN'T GET THE RESPONSE");
 		}
 	}
 }
@@ -38,13 +105,15 @@ void change_to_conf(void){
 		case ENVIA1:
 			estat_tx=CONFIRB;
 			break;
+		default:
+			break;
 	}
 }
 
 static void send_message(void){
 	if(intents < 3){
 		if(ether_can_put()){
-			ether_block_put(missatge_tx);
+			ether_block_put((block_morse)missatge_tx);
 			if(DEBUGGER){
 				print("SENDING...");
 				print(missatge_tx);
@@ -52,9 +121,14 @@ static void send_message(void){
 			change_to_conf(); //Cambia l'estat a confirmació depenent de la trama que hem de rebre (0 -> A, 1 -> B)
 			intents=0;
 			on_finish_transmission((ether_callback_t) receive_confirmation); //Quan acabem la transmissió, hem d'esperar a rebre un valor (A o B)
+			serial_put('C');
+			serial_put('\n');
+			serial_put('\r');
 
+
+
+			}
 		}
-	}
 
 		else{
 			intents++;
@@ -63,7 +137,6 @@ static void send_message(void){
 			if(DEBUGGER){
 			print("ETHER IS BUSY");
 			}
-			
 		}
 }
 
@@ -72,7 +145,7 @@ static void send_message(void){
 void frame_block_put(const block_morse b){
 	char missatge_net[28];
 	switch(estat_tx){
-		case ENVIA0: 
+		case ENVIA0:
 			missatge_tx[0] = '0';
 			missatge_net[0] = '0';
 			break;
@@ -99,9 +172,9 @@ void frame_block_put(const block_morse b){
 	print(missatge_tx);
 	}
 
-	send_missatge(); //Intentem enviar el missatge
+	send_message(); //Intentem enviar el missatge
 
-		
+
 
 }
 
