@@ -31,6 +31,7 @@ static bool check_trama(void){ //Comprova si la trama és la correcta
 			}
 			break;
 	}
+	return false;
 }
 
 static void convert_trama(char * to_convert,char letter){
@@ -58,7 +59,7 @@ static void convert_trama(char * to_convert,char letter){
 void receive_trama(void){
 	if(ether_can_get()){
 		ether_block_get(rx); //Rebem la trama
-		if(test_crc_morse()){
+		if(test_crc_morse((char *)rx)){
 			if(check_trama()){ //Comprovem la trama.
 				switch(estat_rx){
 					case REP0:

@@ -7,7 +7,7 @@ static missatge missatge_rx;
 
 static void getmessage(void){
 	frame_block_get(rx);
-	print(rx);
+	print((char *)rx);
 }
 
 int main(void){
@@ -15,6 +15,7 @@ int main(void){
 	frame_init();
 	rx=(block_morse)missatge_rx;
 	on_frame_received(getmessage);
+	print("OK");
 	while(1);
 	return 0;
 }
