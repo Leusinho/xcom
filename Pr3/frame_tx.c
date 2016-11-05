@@ -1,5 +1,6 @@
-#include "frame.h"
+#include "frame_tx.h"
 #include "error_morse_avr.h"
+#include <stdbool.h>
 #include <stdlib.h>
 #include <pbn.h>
 #define DEBUGGER 1
@@ -9,6 +10,8 @@ static missatge missatge_tx;
 static block_morse rx;
 static missatge missatge_rx;
 static uint8_t intents = 0;
+
+static timer_handler_t timer_timeout;
 
 static void send_message(void);
 static void receive_confirmation(void);
@@ -35,66 +38,67 @@ void convert(char * to_convert,char letter){
 	}
 }
 
+static bool check_missatge_confirmacio(void){
+	switch(estat_tx){
+		case CONFIRA:
+			if(rx[0] == 'A')
+				return true;
+			else
+				return false;
+			break;
+		case CONFIRB:
+			if(rx[0] == 'B')
+				return true;
+			else
+				return false;
+			break;
+		default:
+			return false;
+	}
+}
+
+static void change_trama(void){
+	switch(estat_tx){
+		case CONFIRA:
+			estat_tx = ENVIA1;
+			break;
+		case CONFIRB:
+			estat_tx = ENVIA0;
+			break;
+		default:
+			break;
+	}
+}
+
 static void receive_confirmation(void){
 	if(DEBUGGER){
 		print("SENT");
 		print("RECEIVING A or B... ");
 	}
-	char resposta[4];
 	rx = (block_morse) missatge_rx;
-
 	if(ether_can_get()){
-		ether_block_get(rx); // Rebem el valor A o B + checksum
-
-		if(test_crc_morse((char *)rx)){ //Comprovem si el morse és correcte
-			switch(estat_tx){
-				case CONFIRA:
-					convert(resposta,'A');
-					if(DEBUGGER){
-						print("A SENDING");
-						print(resposta);
-					}
-					ether_block_put((block_morse)resposta);
-					break;
-
-				case CONFIRB:
-					convert(resposta,'B');
-					if(DEBUGGER){
-						print("B SENDING");
-						print(resposta);
-					}
-					ether_block_put((block_morse)resposta);
-					break;
-
-				default:
-					break;
-			}
-		}
-
-
-		else{
-			switch(estat_tx){
-				case CONFIRA:
-					convert(resposta,'B');
-					ether_block_put((block_morse)resposta);
-					break;
-
-					case CONFIRB:
-					convert(resposta,'A');
-					ether_block_put((block_morse)resposta);
-					break;
-
-					default:
-						break;
+		ether_block_get(rx);
+		if(test_crc_morse((char *)rx)){
+			if(check_missatge_confirmacio()){ //Funció que comprova si hem rebut el caràcter que ens toca depenent de l'estat
+				if(DEBUGGER){
+					print("Message received OK");
 				}
-			}
-	}
+				change_trama(); //Canviem l'estat a ENVIA0/ENVIA1
 
-	else{
-		if(DEBUGGER){
-			print("CAN'T GET THE RESPONSE");
+
+
+			}
+			else{
+				send_message(); //Tornem a enviar el missatge ja que la trama no té el CRC esperat
+			}
+
+		}
+		else{
+			send_message(); // Tornem a enviar el missatge si el missatge no és correcte
 		}
 	}
+
+
 }
 
 void change_to_conf(void){
@@ -114,31 +118,33 @@ static void send_message(void){
 	if(intents < 3){
 		if(ether_can_put()){
 			ether_block_put((block_morse)missatge_tx);
+			on_finish_transmission(receive_confirmation);
+			//on_finish_transmission(receive_confirmation); //Quan acabem la transmissió, hem d'esperar a rebre un valor (A o B)
 			if(DEBUGGER){
 				print("SENDING...");
-				print(missatge_tx);
+				//print(missatge_tx);
 			}
 			change_to_conf(); //Cambia l'estat a confirmació depenent de la trama que hem de rebre (0 -> A, 1 -> B)
 			intents=0;
-			on_finish_transmission((ether_callback_t) receive_confirmation); //Quan acabem la transmissió, hem d'esperar a rebre un valor (A o B)
-			serial_put('C');
-			serial_put('\n');
-			serial_put('\r');
 
-
-
-			}
 		}
+		else{
+				intents++;
+				uint8_t r = rand() % 11; // Numero aleatori entre 0 i 10
+				timer_after(r*100, send_message); //r*100 son ticks -> Xs * 1000ms / 10 ticks cada ms -> Y ticks
+				if(DEBUGGER){
+				print("ETHER IS BUSY");
+				}
+			}
+	}
 
 		else{
-			intents++;
-			uint8_t r = rand() % 11; // Numero aleatori entre 0 i 10
-			timer_after(r*100, send_message); //r*100 son ticks -> Xs * 1000ms / 10 ticks cada ms -> Y ticks
-			if(DEBUGGER){
-			print("ETHER IS BUSY");
-			}
+			intents = 0; //S'han acabat els intents
 		}
+
+
 }
+
 
 
 
