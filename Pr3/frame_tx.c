@@ -58,6 +58,12 @@ static void receive_confirmation(void){
 	rx = (block_morse) missatge_rx;
 	if(ether_can_get()){
 		ether_block_get(rx);
+		if(DEBUGGER){
+			serial_put('R');
+			serial_put('-');
+			serial_put('>');
+			print((char *)rx);
+		}
 		if(test_crc_morse((char *)rx)){
 			if(check_missatge_confirmacio()){ //Funció que comprova si hem rebut el caràcter que ens toca depenent de l'estat
 				if(DEBUGGER){
@@ -77,6 +83,9 @@ static void receive_confirmation(void){
 			send_message(); // Tornem a enviar el missatge si el missatge no és correcte
 		}
 	}
+
+	else
+		print("CAN'T GET");
 
 
 }

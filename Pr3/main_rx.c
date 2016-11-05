@@ -6,6 +6,8 @@ static block_morse rx;
 static missatge missatge_rx;
 
 static void getmessage(void){
+	serial_put('R');
+	serial_put('|');
 	frame_block_get(rx);
 	print((char *)rx);
 }

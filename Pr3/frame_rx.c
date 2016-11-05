@@ -59,6 +59,12 @@ static void convert_trama(char * to_convert,char letter){
 void receive_trama(void){
 	if(ether_can_get()){
 		ether_block_get(rx); //Rebem la trama
+		if(DEBUGGER){
+			serial_put('R');
+			serial_put('-');
+			serial_put('>');
+			print((char *)rx);
+		}
 		if(test_crc_morse((char *)rx)){
 			if(check_trama()){ //Comprovem la trama.
 				switch(estat_rx){
@@ -66,15 +72,23 @@ void receive_trama(void){
 						convert_trama(trama,'A');
 						if(ether_can_put()){
 							ether_block_put((block_morse)trama);
+							if(DEBUGGER){
+								print("SENT TRAMA A");
+							}
 						}
 						estat_rx=REP1; //Canviem l'estat pel següent
+						frame_callback();
 						break;
 					case REP1:
 						convert_trama(trama,'B');
 						if(ether_can_put()){
 							ether_block_put((block_morse)trama);
+							if(DEBUGGER){
+								print("SENT TRAMA A");
+							}
 						}
 						estat_rx=REP0; //Canviem l'estat
+						frame_callback();
 						break;
 				}
 			}
@@ -84,6 +98,9 @@ void receive_trama(void){
 						convert_trama(trama,'B');
 						if(ether_can_put()){
 							ether_block_put((block_morse)trama);
+							if(DEBUGGER){
+								print("INCORRECT TRAMA. SENDING B...");
+							}
 						}
 						//Hem de canviar l'estat?
 						break;
@@ -91,6 +108,9 @@ void receive_trama(void){
 						convert_trama(trama,'A');
 						if(ether_can_put()){
 							ether_block_put((block_morse)trama);
+							if(DEBUGGER){
+								print("INCORRECT TRAMA. SENDING A...");
+							}
 						}
 						//Hem de canviar l'estat?
 						break;
