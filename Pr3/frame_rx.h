@@ -12,6 +12,6 @@ void frame_block_get(block_morse b);
 void on_frame_received(frame_callback_t l);
 
 typedef char missatge[32];
-typedef enum {REP0,REP1} maqestats;
+typedef enum {REP0,REP1} maqestatsrx;
 
 #endif

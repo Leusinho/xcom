@@ -16,27 +16,7 @@ static timer_handler_t timer_timeout;
 static void send_message(void);
 static void receive_confirmation(void);
 
-void convert(char * to_convert,char letter){
-	switch(letter){
-		case 'A':
-			to_convert[0] = 'A';
-			to_convert[1] = '1';
-			to_convert[2] = '8';
-			to_convert[3] = '\0';
-			break;
 
-		case 'B':
-			to_convert[0] = 'B';
-			to_convert[1] = 'F';
-			to_convert[2] = 'A';
-			to_convert[3] = '\0';
-			break;
-
-		default:
-			break;
-
-	}
-}
 
 static bool check_missatge_confirmacio(void){
 	switch(estat_tx){

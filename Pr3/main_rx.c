@@ -5,13 +5,16 @@
 static block_morse rx;
 static missatge missatge_rx;
 
+static void getmessage(void){
+	frame_block_get(rx);
+	print(rx);
+}
+
 int main(void){
 	sei();
 	frame_init();
 	rx=(block_morse)missatge_rx;
-	while(1){
-		while(!frame_can_put());
-		envia_missatge();
-	}
+	on_frame_received(getmessage);
+	while(1);
 	return 0;
 }
