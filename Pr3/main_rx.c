@@ -5,10 +5,10 @@
 static block_morse rx;
 static missatge missatge_rx;
 
-static void getmessage(void){
+void getmessage(void){
+	frame_block_get(rx);
 	serial_put('R');
 	serial_put('|');
-	frame_block_get(rx);
 	print((char *)rx);
 }
 

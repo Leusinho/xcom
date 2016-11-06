@@ -4,8 +4,9 @@
 #include <stdbool.h>
 #include <pbn.h>
 
-typedef void (*frame_callback_t)(void);
 
+typedef void (*frame_callback_t)(void);
+void getmessage(void);
 void frame_init(void);
 
 void frame_block_get(block_morse b);

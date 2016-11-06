@@ -5,12 +5,13 @@
 #include <pbn.h>
 #define DEBUGGER 1
 
-static block_morse rx;
+
 static missatge missatge_rx;
 static maqestatsrx estat_rx;
 static char trama[4];
 static frame_callback_t frame_callback = NULL;
 static void receive_trama(void);
+block_morse rx;
 
 static bool check_trama(void){ //Comprova si la trama és la correcta
 	switch(estat_rx){
@@ -97,20 +98,25 @@ void receive_trama(void){
 			serial_put('\n');
 			serial_put('\r');
 		#endif
+
 		if(check_trama()){ //Comprovem si la trama que rebem és la que pertoca
 			send_trama(true);
+
 			#if DEBUGGER
 			serial_put(trama[0]);
 			serial_put('\n');
 			serial_put('\r');
 			#endif
+
 			estat_rx=REP1;
-			//frame_callback();
+			frame_callback();
+
 
 		}
 		else{
 			send_trama(false);
 		}
+
 
 	}
 
