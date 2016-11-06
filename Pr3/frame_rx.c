@@ -56,74 +56,64 @@ static void convert_trama(char * to_convert,char letter){
 	}
 }
 
+void send_trama(bool sendcorrect){ //Envia la trama adequada depenent de l'estat. True -> Enviem la que toca. False -> Enviem l'altra
+if(sendcorrect){
+	switch(estat_rx){
+		case REP0:
+			convert_trama(trama,'A');
+			ether_block_put((block_morse) trama);
+			break;
+		case REP1:
+			convert_trama(trama,'B');
+			ether_block_put((block_morse) trama);
+			break;
+	}
+}
+else{
+	switch(estat_rx){
+		case REP0:
+			convert_trama(trama,'B');
+			ether_block_put((block_morse) trama);
+			break;
+		case REP1:
+			convert_trama(trama,'A');
+			ether_block_put((block_morse) trama);
+			break;
+	}
+}
+}
+
 void receive_trama(void){
+	print("Rebem trama...");
 	if(ether_can_get()){
-		print("ENTRO");
-		ether_block_get(rx); //Rebem la trama
-		if(DEBUGGER){
-			serial_put('R');
-			serial_put('-');
-			serial_put('>');
-			print((char *)rx);
-		}
-		if(test_crc_morse((char *)rx)){
-			if(check_trama()){ //Comprovem la trama.
-				switch(estat_rx){
-					case REP0:
-						convert_trama(trama,'A');
-						if(ether_can_put()){
-							ether_block_put((block_morse)trama);
-							if(DEBUGGER){
-								print("SENT TRAMA A");
-								print(trama);
-							}
+	ether_block_get(rx);
+	serial_put('T');
+	serial_put('-');
+	serial_put('>');
+	print((char *) rx);
+	if(test_crc_morse((char *)rx)){ //Comprovem el CRC de la trama
+		#if DEBUGGER
+			serial_put('O');
+			serial_put('\n');
+			serial_put('\r');
+		#endif
+		if(check_trama()){ //Comprovem si la trama que rebem és la que pertoca
+			send_trama(true);
+			#if DEBUGGER
+			serial_put(trama[0]);
+			serial_put('\n');
+			serial_put('\r');
+			#endif
+			estat_rx=REP1;
+			//frame_callback();
 
-						}
-						estat_rx=REP1; //Canviem l'estat pel següent
-						frame_callback();
-						break;
-					case REP1:
-						convert_trama(trama,'B');
-						if(ether_can_put()){
-							ether_block_put((block_morse)trama);
-							if(DEBUGGER){
-								print("SENT TRAMA A");
-							}
-						}
-						estat_rx=REP0; //Canviem l'estat
-						frame_callback();
-						break;
-				}
-			}
-			else{ //No hem rebut la trama correcte
-				switch(estat_rx){
-					case REP0:
-						convert_trama(trama,'B');
-						if(ether_can_put()){
-							ether_block_put((block_morse)trama);
-							if(DEBUGGER){
-								print("INCORRECT TRAMA. SENDING B...");
-							}
-						}
-						//Hem de canviar l'estat?
-						break;
-					case REP1:
-						convert_trama(trama,'A');
-						if(ether_can_put()){
-							ether_block_put((block_morse)trama);
-							if(DEBUGGER){
-								print("INCORRECT TRAMA. SENDING A...");
-							}
-						}
-						//Hem de canviar l'estat?
-						break;
-				}
-			}
 		}
-
 		else{
-
+			send_trama(false);
 		}
+
+	}
+
 
 	}
 }

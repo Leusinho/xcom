@@ -104,12 +104,10 @@ void change_to_conf(void){
 }
 
 static void send_message(void){
-	
 	if(intents < 3){
 		if(ether_can_put()){
 			ether_block_put((block_morse)missatge_tx);
-			on_finish_transmission(receive_confirmation);
-			//on_finish_transmission(receive_confirmation); //Quan acabem la transmissió, hem d'esperar a rebre un valor (A o B)
+			on_finish_transmission(receive_confirmation); //Quan acabem la transmissió, hem d'esperar a rebre un valor (A o B)
 			if(DEBUGGER){
 				print("SENDING...");
 				//print(missatge_tx);
