@@ -104,6 +104,7 @@ void change_to_conf(void){
 }
 
 static void send_message(void){
+	
 	if(intents < 3){
 		if(ether_can_put()){
 			ether_block_put((block_morse)missatge_tx);
@@ -163,7 +164,7 @@ void frame_block_put(const block_morse b){
 	missatge_tx[j]='\0';
 
 	if(DEBUGGER){
-	print("MISSATGE ENVIAT TX:");
+	print("TRAMA TX:");
 	print(missatge_tx);
 	}
 

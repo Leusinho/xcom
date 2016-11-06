@@ -58,6 +58,7 @@ static void convert_trama(char * to_convert,char letter){
 
 void receive_trama(void){
 	if(ether_can_get()){
+		print("ENTRO");
 		ether_block_get(rx); //Rebem la trama
 		if(DEBUGGER){
 			serial_put('R');
@@ -74,7 +75,9 @@ void receive_trama(void){
 							ether_block_put((block_morse)trama);
 							if(DEBUGGER){
 								print("SENT TRAMA A");
+								print(trama);
 							}
+
 						}
 						estat_rx=REP1; //Canviem l'estat pel següent
 						frame_callback();
