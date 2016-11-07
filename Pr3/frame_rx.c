@@ -84,16 +84,23 @@ else{
 }
 }
 
+static void change_estat(void){
+  switch(estat_rx){
+    case REP0:
+      estat_rx=REP1;
+      break;
+    case REP1:
+      estat_rx=REP0;
+      break;
+  }
+}
+
 void receive_trama(void){
-	print("Rebem trama...");
 	if(ether_can_get()){
-	ether_block_get(rx);
-	serial_put('T');
-	serial_put('-');
-	serial_put('>');
-	print((char *) rx);
-	if(test_crc_morse((char *)rx)){ //Comprovem el CRC de la trama
-		#if DEBUGGER
+    ether_block_get(rx);
+    print((char *)rx);
+    if(test_crc_morse((char *)rx)){ //Comprovem el CRC de la trama
+		  #if DEBUGGER
 			serial_put('O');
 			serial_put('\n');
 			serial_put('\r');
@@ -108,8 +115,8 @@ void receive_trama(void){
 			serial_put('\r');
 			#endif
 
-			estat_rx=REP1;
-			on_finish_transmission(frame_callback);
+			change_estat();
+			frame_callback();
 
 
 		}
