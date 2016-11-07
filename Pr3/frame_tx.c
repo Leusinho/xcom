@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <pbn.h>
 #define TIMEOUT 5000
-#define DEBUGGER 1
+#define DEBUGGER 0
 
 static maqestats estat_tx;
 static missatge missatge_tx;
@@ -32,22 +32,6 @@ static bool check_missatge_confirmacio(void){
   }
 }
 
-static void change_trama(void){
-  switch(estat_tx){
-    case CONFIRA:
-    estat_tx = ENVIA1;
-    break;
-    case CONFIRB:
-    estat_tx = ENVIA0;
-    break;
-    default:
-    break;
-  }
-}
-
-
-
-
 void change_to_conf(void){
   switch(estat_tx){
     case ENVIA0:
@@ -73,9 +57,16 @@ static void timeout(void){
 static void got_something(void){
   rx = (block_morse) missatge_rx;
   ether_block_get(rx);
+  #if DEBUGGER
+  print((char *)rx);
+  #endif
   if(test_crc_morse((char *)rx) && check_missatge_confirmacio()){
+    print("OK");
     maquinaestats(confirma);
     on_message_received(NULL);
+  }
+  else{
+    maquinaestats(envia);
   }
 }
 
@@ -122,6 +113,12 @@ void maquinaestats(event funcio){
 
     case CONFIRA:
       switch(funcio){
+        case envia:
+          if(ether_can_put()){
+            ether_block_put((block_morse)missatge_tx);
+          }
+          break;
+
         case confirma:
           estat_tx = ENVIA1;
           timer_cancel(timer_timeout);
@@ -132,6 +129,11 @@ void maquinaestats(event funcio){
 
     case CONFIRB:
         switch(funcio){
+          case envia:
+            if(ether_can_put()){
+              ether_block_put((block_morse)missatge_tx);
+            }
+            break;
           case confirma:
             estat_tx = ENVIA0;
             timer_cancel(timer_timeout);

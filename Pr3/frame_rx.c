@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <pbn.h>
-#define DEBUGGER 1
+#define DEBUGGER 0
 
 
 static missatge missatge_rx;
@@ -98,22 +98,19 @@ static void change_estat(void){
 void receive_trama(void){
 	if(ether_can_get()){
     ether_block_get(rx);
-    print((char *)rx);
+    #if DEBUGGER
+      print((char *)rx);
+    #endif
     if(test_crc_morse((char *)rx)){ //Comprovem el CRC de la trama
-		  #if DEBUGGER
-			serial_put('O');
-			serial_put('\n');
-			serial_put('\r');
-		#endif
 
-		if(check_trama()){ //Comprovem si la trama que rebem és la que pertoca
-			send_trama(true);
+		  if(check_trama()){ //Comprovem si la trama que rebem és la que pertoca
+        send_trama(true);
 
-			#if DEBUGGER
-			serial_put(trama[0]);
-			serial_put('\n');
-			serial_put('\r');
-			#endif
+        #if DEBUGGER
+  			serial_put(trama[0]);
+  			serial_put('\n');
+  			serial_put('\r');
+  			#endif
 
 			change_estat();
 			frame_callback();
