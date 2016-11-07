@@ -109,7 +109,7 @@ void receive_trama(void){
 			#endif
 
 			estat_rx=REP1;
-			frame_callback();
+			on_finish_transmission(frame_callback);
 
 
 		}

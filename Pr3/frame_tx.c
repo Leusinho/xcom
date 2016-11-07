@@ -51,13 +51,16 @@ static void change_trama(void){
 }
 
 static void receive_confirmation(void){
-	if(DEBUGGER){
+	/*if(DEBUGGER){
 		print("SENT");
 		print("RECEIVING A or B... ");
 	}
+	*/
+
+	serial_put('Z');
 	rx = (block_morse) missatge_rx;
 	if(ether_can_get()){
-		ether_block_get(rx);
+	ether_block_get(rx);
 		if(DEBUGGER){
 			serial_put('R');
 			serial_put('-');
@@ -84,11 +87,19 @@ static void receive_confirmation(void){
 		}
 	}
 
-	else
-		print("CAN'T GET");
+
+
 
 
 }
+
+
+void timeout(void){
+	serial_put('T');
+	//timer_timeout = timer_after(TIMER_MS(5000), (timer_callback_t) timeout);
+	receive_confirmation();
+}
+
 
 void change_to_conf(void){
 	switch(estat_tx){
@@ -107,11 +118,12 @@ static void send_message(void){
 	if(intents < 3){
 		if(ether_can_put()){
 			ether_block_put((block_morse)missatge_tx);
-			on_finish_transmission(receive_confirmation); //Quan acabem la transmissió, hem d'esperar a rebre un valor (A o B)
-			if(DEBUGGER){
+			on_finish_transmission(timeout); //Quan acabem la transmissió, hem d'esperar a rebre un valor (A o B)
+			/*if(DEBUGGER){
 				print("SENDING...");
 				//print(missatge_tx);
 			}
+			*/
 			change_to_conf(); //Cambia l'estat a confirmació depenent de la trama que hem de rebre (0 -> A, 1 -> B)
 			intents=0;
 
