@@ -5,7 +5,7 @@
 #include <pbn.h>
 
 typedef void (*frame_callback_t)(void);
-typedef enum {envia,confirma} event;
+typedef enum {send,wait} event;
 
 void frame_init(void);
 
@@ -18,6 +18,6 @@ void maquinaestats(event funcio);
 
 
 typedef char missatge[32];
-typedef enum {ENVIA0,ENVIA1,CONFIRA,CONFIRB} maqestats;
+typedef enum {WAIT0,WAIT1,WAITACK0,WAITACK1} maqestats;
 
 #endif

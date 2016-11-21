@@ -4,162 +4,22 @@
 #include <stdlib.h>
 #include <pbn.h>
 #define TIMEOUT 5000
-#define DEBUGGER 0
+#define DEBUGGER 1
 
 static maqestats estat_tx;
 static missatge missatge_tx;
 static block_morse rx;
 static missatge missatge_rx;
 static uint8_t intents = 0;
+static block_morse trama;
 
 static timer_handler_t timer_timeout;
-static bool check_missatge_confirmacio(void){
-  switch(estat_tx){
-    case CONFIRA:
-    if(rx[0] == 'A')
-    return true;
-    else
-    return false;
-    break;
-    case CONFIRB:
-    if(rx[0] == 'B')
-    return true;
-    else
-    return false;
-    break;
-    default:
-    return false;
-  }
-}
-
-void change_to_conf(void){
-  switch(estat_tx){
-    case ENVIA0:
-    estat_tx=CONFIRA;
-    break;
-    case ENVIA1:
-    estat_tx=CONFIRB;
-    break;
-    default:
-    break;
-  }
-}
 
 
-static void timeout(void){
-  if(intents<3){
-    maquinaestats(envia); //Tornem a enviar
-  }
-  timer_cancel(timer_timeout);
-  intents++;
-}
-
-static void got_something(void){
-  rx = (block_morse) missatge_rx;
-  ether_block_get(rx);
-  #if DEBUGGER
-  print((char *)rx);
-  #endif
-  if(test_crc_morse((char *)rx) && check_missatge_confirmacio()){
-    print("OK");
-    maquinaestats(confirma);
-    on_message_received(NULL);
-  }
-  else{
-    maquinaestats(envia);
-  }
-}
-
-void start_timeout(void){
-  timer_timeout = timer_after(TIMER_MS(TIMEOUT),timeout);
-  on_message_received(got_something);
-}
-
-void maquinaestats(event funcio){
-  switch(estat_tx){
-    case ENVIA0:
-      switch(funcio){
-        case envia:
-          if(ether_can_put()){
-            ether_block_put((block_morse)missatge_tx);
-          }
-          estat_tx=CONFIRA;
-          on_finish_transmission(start_timeout);
-
-          break;
-        case confirma: //Missatge correcte, canviem estat
-          estat_tx = ENVIA1;
-          timer_cancel(timer_timeout);
-          break;
-      }
-    break;
-
-    case ENVIA1:
-      switch(funcio){
-        case envia:
-          if(ether_can_put()){
-            ether_block_put((block_morse)missatge_tx);
-          }
-          estat_tx=CONFIRB;
-          on_finish_transmission(start_timeout);
-          break;
-
-        case confirma: //Missatge correcte, canviem estat
-          estat_tx = ENVIA0;
-          timer_cancel(timer_timeout);
-          break;
-        }
-      break;
-
-    case CONFIRA:
-      switch(funcio){
-        case envia:
-          if(ether_can_put()){
-            ether_block_put((block_morse)missatge_tx);
-          }
-          break;
-
-        case confirma:
-          estat_tx = ENVIA1;
-          timer_cancel(timer_timeout);
-          break;
-
-      }
-      break;
-
-    case CONFIRB:
-        switch(funcio){
-          case envia:
-            if(ether_can_put()){
-              ether_block_put((block_morse)missatge_tx);
-            }
-            break;
-          case confirma:
-            estat_tx = ENVIA0;
-            timer_cancel(timer_timeout);
-            break;
-        }
-        break;
-  }
-}
-
-
-
-
-void frame_block_put(const block_morse b){
+void make_trama(const block_morse b,char posicio){
   char missatge_net[28];
-  switch(estat_tx){
-    case ENVIA0:
-      missatge_tx[0] = '0';
-      missatge_net[0] = '0';
-    break;
-    case ENVIA1:
-      missatge_tx[0] = '1';
-      missatge_net[0] = '1';
-    break;
-    default: //No hi entrarem mai, però per si de cas
-    print("ERROR");
-  }
+  missatge_tx[0] = posicio;
+  missatge_net[0] = posicio;
   uint8_t i=0,j=1;
   while(b[i] != '\0'){
     missatge_tx[j] = b[i];
@@ -175,19 +35,107 @@ void frame_block_put(const block_morse b){
     print("TRAMA TX:");
     print(missatge_tx);
   }
+}
 
-  maquinaestats(envia);
+
+static void timeout(void){
+  if(intents<3){
+    maquinaestats(send); //Tornem a enviar
+  }
+  timer_cancel(timer_timeout);
+  intents++;
+}
+
+static void message_received(void){
+  rx = (block_morse) missatge_rx;
+  ether_block_get(rx); //Obtenem el valor
+  #if DEBUGGER
+  print((char *)rx);
+  #endif
+  maquinaestats(wait);
+}
+
+void start_timer(void){
+  timer_timeout = timer_after(TIMER_MS(TIMEOUT),timeout); //Encenem el timer
+  on_message_received(message_received);
+}
+
+void maquinaestats(event function){
+  switch(estat_tx){
+    case WAIT0:
+      if(function == send){ //Volem enviar
+        make_trama(trama,'0'); //Fem la trama. Es guarda a missatge_tx
+        if(ether_can_put()){
+          ether_block_put((block_morse) missatge_tx);
+          on_finish_transmission(start_timer);
+          estat_tx=WAITACK0;
+        }
+      }
+    break;
+
+    case WAITACK0:
+      if(function == wait){
+        if(test_crc_morse((char *)rx) && rx[0] == 'A'){
+          timer_cancel(timer_timeout);
+          estat_tx=WAIT1;
+          intents=0;
+        }
+      }
+
+      else if(function == send){
+        if(ether_can_put()){
+          ether_block_put((block_morse) missatge_tx);
+          on_finish_transmission(start_timer);
+        }
+      }
+
+    break;
+
+    case WAIT1:
+      if(function == send){ //Volem enviar
+        make_trama(trama,'1'); //Fem la trama. Es guarda a missatge_tx
+        if(ether_can_put()){
+          ether_block_put((block_morse) missatge_tx);
+          on_finish_transmission(start_timer);
+          estat_tx=WAITACK1;
+        }
+      }
+      break;
+
+    case WAITACK1:
+      if(function == wait){
+        if(test_crc_morse((char *)rx) && rx[0] == 'B'){
+          timer_cancel(timer_timeout);
+          estat_tx=WAIT0;
+          intents=0;
+        }
+      }
+
+      else if(function == send){
+        if(ether_can_put()){
+          ether_block_put((block_morse) missatge_tx);
+          on_finish_transmission(start_timer);
+        }
+      }
+      break;
+    }
+}
+
+
+void frame_block_put(const block_morse b){
+  trama = b;
+  maquinaestats(send); //Intentem enviar
 
   //send_message(); //Intentem enviar el missatge
 
 }
 
 bool frame_can_put(void){
-  return (estat_tx == ENVIA0) || (estat_tx == ENVIA1);
+  return (estat_tx == WAIT0) || (estat_tx == WAIT1);
 }
 
 void frame_init(void){
   ether_init();
   serial_open();
-  estat_tx = ENVIA0;
+  estat_tx = WAIT0;
 }
