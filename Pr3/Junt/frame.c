@@ -1,5 +1,5 @@
 #define TIMEOUT 5000
-#define DEBUGGER 0
+#define DEBUGGER 1
 #include "frame.h"
 #include "error_morse_avr.h"
 #include <pbn.h>
@@ -17,6 +17,8 @@ static block_morse tx_rx;
 static missatge missatge_tx_rx;
 static uint8_t intents = 0;
 static block_morse trama;
+
+static tipus tipus_ard;
 
 static timer_handler_t timer_timeout;
 
@@ -103,6 +105,7 @@ static void change_estat(void){
 }
 
 void receive_trama(void){
+
 	if(ether_can_get()){
     ether_block_get(rx);
     #if DEBUGGER
@@ -186,8 +189,10 @@ static void message_received(void){
 }
 
 void start_timer(void){
-  timer_timeout = timer_after(TIMER_MS(TIMEOUT),timeout); //Encenem el timer
-  on_message_received(message_received);
+  if(tipus_ard == transmissor){
+    timer_timeout = timer_after(TIMER_MS(TIMEOUT),timeout); //Encenem el timer
+    on_message_received(message_received);
+  }
 }
 
 void maquinaestats(event function){
@@ -197,6 +202,7 @@ void maquinaestats(event function){
         make_trama(trama,'0'); //Fem la trama. Es guarda a missatge_tx
         if(ether_can_put()){
           ether_block_put((block_morse) missatge_tx);
+          on_message_received(message_received);
           on_finish_transmission(start_timer);
           estat_tx=WAITACK0;
         }
@@ -215,6 +221,7 @@ void maquinaestats(event function){
       else if(function == send){
         if(ether_can_put()){
           ether_block_put((block_morse) missatge_tx);
+          on_message_received(message_received);
           on_finish_transmission(start_timer);
         }
       }
@@ -253,7 +260,9 @@ void maquinaestats(event function){
 
 void frame_block_put(const block_morse b){
   trama = b;
+  tipus_ard=transmissor;
   maquinaestats(send); //Intentem enviar
+
 }
 
 bool frame_can_put(void){

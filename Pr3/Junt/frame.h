@@ -8,6 +8,8 @@ typedef void (*frame_callback_t)(void);
 void frame_block_get(block_morse b);
 void on_frame_received(frame_callback_t l);
 
+typedef enum {transmissor,receptor} tipus;
+
 /* PART TX */
 
 typedef enum {send,wait} event;

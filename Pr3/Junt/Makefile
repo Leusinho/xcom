@@ -18,14 +18,14 @@ error_morse_avr.o: error_morse_avr.h -lpbn
 clean:
 	rm -f *~ *.o *.s *.hex
 
-.PHONY: tx rx
-tx:
-	avr-objcopy -Oihex main_tx main_tx.hex
-	sudo avrdude -c arduino -p atmega328p -P $(DEVICE) -U main_tx.hex
+.PHONY: c1 c2
+c1:
+	avr-objcopy -Oihex main main.hex
+	sudo avrdude -c arduino -p atmega328p -P $(DEVICE) -U main.hex
 	sudo picocom $(DEVICE)
-rx:
-	avr-objcopy -Oihex main_rx main_rx.hex
-	sudo avrdude -c arduino -p atmega328p -P $(SECONDDEVICE) -U main_rx.hex
+c2:
+	avr-objcopy -Oihex main main.hex
+	sudo avrdude -c arduino -p atmega328p -P $(SECONDDEVICE) -U main.hex
 	sudo picocom $(SECONDDEVICE)
 	
 
