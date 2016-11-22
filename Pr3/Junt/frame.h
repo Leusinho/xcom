@@ -17,7 +17,6 @@ void frame_init(void);
 
 bool frame_can_put(void);
 void frame_block_put(const block_morse b);
-void maquinaestats(event funcio);
 
 typedef char missatge[32];
 typedef enum {WAIT0,WAIT1,WAITACK0,WAITACK1} maqestats;

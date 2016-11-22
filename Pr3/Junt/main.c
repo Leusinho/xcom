@@ -9,8 +9,6 @@ static missatge missatge_tx;
 
 void getmessage(void){
 	frame_block_get(rx);
-  serial_put('\n');
-  serial_put('\r');
 	serial_put('R');
 	serial_put('|');
 	print((char *)rx);
@@ -49,6 +47,7 @@ int main(void){
   on_frame_received(getmessage);
   while(1){
 		while(!frame_can_put());
+    serial_get();
 		envia_missatge();
 	}
   return 0;

@@ -1,14 +1,15 @@
 #define TIMEOUT 5000
-#define DEBUGGER 1
+#define DEBUGGER 0
 #include "frame.h"
 #include "error_morse_avr.h"
+#include <stdlib.h>
+#include <stdbool.h>
 #include <pbn.h>
 
 static missatge missatge_rx;
 static maqestatsrx estat_rx;
 static char tramarx[4];
 static frame_callback_t frame_callback;
-static void receive_trama(void);
 block_morse rx;
 
 static maqestats estat_tx;
@@ -21,6 +22,15 @@ static block_morse trama;
 static tipus tipus_ard;
 
 static timer_handler_t timer_timeout;
+
+static void message_received(void);
+static bool check_trama(void);
+static void convert_trama(char * to_convert,char letter);
+static void send_trama(bool sendcorrect);
+static void change_estat(void);
+static void make_trama(const block_morse b,char posicio);
+static void start_timer(void);
+static void maquinaestats(event function);
 
 static bool check_trama(void){ //Comprova si la trama és la correcta
 	switch(estat_rx){
@@ -66,7 +76,7 @@ static void convert_trama(char * to_convert,char letter){
 	}
 }
 
-void send_trama(bool sendcorrect){ //Envia la trama adequada depenent de l'estat. True -> Enviem la que toca. False -> Enviem l'altra
+static void send_trama(bool sendcorrect){ //Envia la trama adequada depenent de l'estat. True -> Enviem la que toca. False -> Enviem l'altra
 if(sendcorrect){
 	switch(estat_rx){
 		case REP0:
@@ -104,7 +114,7 @@ static void change_estat(void){
   }
 }
 
-void receive_trama(void){
+void message_received_rx(void){
 
 	if(ether_can_get()){
     ether_block_get(rx);
@@ -117,6 +127,12 @@ void receive_trama(void){
         send_trama(true);
 
         #if DEBUGGER
+        serial_put('S');
+        serial_put('E');
+        serial_put('N');
+        serial_put('T');
+        serial_put('-');
+        serial_put('>');
   			serial_put(tramarx[0]);
   			serial_put('\n');
   			serial_put('\r');
@@ -150,7 +166,7 @@ void on_frame_received(frame_callback_t l){
 
 /* PART TX */
 
-void make_trama(const block_morse b,char posicio){
+static void make_trama(const block_morse b,char posicio){
   char missatge_net[28];
   missatge_tx[0] = posicio;
   missatge_net[0] = posicio;
@@ -174,12 +190,13 @@ void make_trama(const block_morse b,char posicio){
 static void timeout(void){
   if(intents<3){
     maquinaestats(send); //Tornem a enviar
+    print("ENTROAQUI?");
   }
   timer_cancel(timer_timeout);
   intents++;
 }
 
-static void message_received(void){
+static void message_received_tx(void){
   tx_rx = (block_morse) missatge_tx_rx;
   ether_block_get(tx_rx); //Obtenem el valor
   #if DEBUGGER
@@ -188,21 +205,31 @@ static void message_received(void){
   maquinaestats(wait);
 }
 
-void start_timer(void){
-  if(tipus_ard == transmissor){
-    timer_timeout = timer_after(TIMER_MS(TIMEOUT),timeout); //Encenem el timer
-    on_message_received(message_received);
+static void message_received(void){
+  switch(tipus_ard){
+    case transmissor:
+    message_received_tx();
+    break;
+
+    case receptor:
+    message_received_rx();
+    break;
+
   }
 }
 
-void maquinaestats(event function){
+static void start_timer(void){
+  timer_timeout = timer_after(TIMER_MS(TIMEOUT),timeout); //Encenem el timer
+  on_message_received(message_received);
+}
+
+static void maquinaestats(event function){
   switch(estat_tx){
     case WAIT0:
       if(function == send){ //Volem enviar
         make_trama(trama,'0'); //Fem la trama. Es guarda a missatge_tx
         if(ether_can_put()){
           ether_block_put((block_morse) missatge_tx);
-          on_message_received(message_received);
           on_finish_transmission(start_timer);
           estat_tx=WAITACK0;
         }
@@ -214,6 +241,8 @@ void maquinaestats(event function){
         if(test_crc_morse((char *)tx_rx) && tx_rx[0] == 'A'){
           timer_cancel(timer_timeout);
           estat_tx=WAIT1;
+          on_finish_transmission(NULL);
+          tipus_ard=receptor;
           intents=0;
         }
       }
@@ -236,6 +265,7 @@ void maquinaestats(event function){
           on_finish_transmission(start_timer);
           estat_tx=WAITACK1;
         }
+
       }
       break;
 
@@ -244,6 +274,8 @@ void maquinaestats(event function){
         if(test_crc_morse((char *)tx_rx) && tx_rx[0] == 'B'){
           timer_cancel(timer_timeout);
           estat_tx=WAIT0;
+          on_finish_transmission(NULL);
+          tipus_ard=receptor;
           intents=0;
         }
       }
@@ -274,6 +306,7 @@ void frame_init(void) {
   serial_open();
   estat_tx = WAIT0;
   estat_rx = REP0;
+  tipus_ard=receptor; //Suposem que es receptor a l'inici. Si és receptor, ho canviarem a frame_block_put
   rx=(block_morse) missatge_rx;
-  on_message_received(receive_trama);
+  on_message_received(message_received);
 }
