@@ -17,6 +17,7 @@ static missatge missatge_tx;
 static block_morse tx_rx;
 static missatge missatge_tx_rx;
 static uint8_t intents = 0;
+//static uint8_t try_intents = 0;
 static block_morse trama;
 
 static tipus tipus_ard;
@@ -181,16 +182,12 @@ static void make_trama(const block_morse b,char posicio){
   missatge_tx[j++]=get_crc.partbaixa;
   missatge_tx[j]='\0';
 
-  if(DEBUGGER){
-    print("TRAMA TX:");
-    print(missatge_tx);
-  }
+
 }
 
 static void timeout(void){
   if(intents<3){
     maquinaestats(send); //Tornem a enviar
-    print("ENTROAQUI?");
   }
   timer_cancel(timer_timeout);
   intents++;
@@ -218,20 +215,42 @@ static void message_received(void){
   }
 }
 
+static void timer(){
+  #if DEBUGGER
+  serial_put('T');
+  serial_put('Y');
+  serial_put('\n');
+  serial_put('\r');
+  #endif
+  maquinaestats(send);
+}
 static void start_timer(void){
   timer_timeout = timer_after(TIMER_MS(TIMEOUT),timeout); //Encenem el timer
   on_message_received(message_received);
 }
-
+static void try_to_send(void){
+  uint8_t r = rand() % 11; // Numero aleatori entre 0 i 10
+  timer_timeout=timer_after(r*100, timer); //r*100 son ticks -> Xs * 1000ms / 10 ticks cada ms -> Y ticks
+}
 static void maquinaestats(event function){
   switch(estat_tx){
     case WAIT0:
       if(function == send){ //Volem enviar
         make_trama(trama,'0'); //Fem la trama. Es guarda a missatge_tx
         if(ether_can_put()){
+          #if DEBUGGER
+            print("TRAMA TX:");
+            print(missatge_tx);
+          #endif
           ether_block_put((block_morse) missatge_tx);
           on_finish_transmission(start_timer);
           estat_tx=WAITACK0;
+          tipus_ard=transmissor;
+        }
+
+        else{
+          tipus_ard=receptor; //Per poder rebre mentre estem intentant enviar
+          try_to_send();
         }
       }
     break;
@@ -261,9 +280,19 @@ static void maquinaestats(event function){
       if(function == send){ //Volem enviar
         make_trama(trama,'1'); //Fem la trama. Es guarda a missatge_tx
         if(ether_can_put()){
+          #if DEBUGGER
+            print("TRAMA TX:");
+            print(missatge_tx);
+          #endif
           ether_block_put((block_morse) missatge_tx);
           on_finish_transmission(start_timer);
           estat_tx=WAITACK1;
+          tipus_ard=transmissor;
+        }
+
+        else{
+          tipus_ard=receptor;
+          try_to_send();
         }
 
       }
