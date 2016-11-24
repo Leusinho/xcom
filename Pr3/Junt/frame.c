@@ -1,5 +1,5 @@
 #define TIMEOUT 5000
-#define DEBUGGER 1
+#define DEBUGGER 0
 #include "frame.h"
 #include "error_morse_avr.h"
 #include <stdlib.h>
@@ -267,18 +267,14 @@ static void timeout(void){
   intents++;
 }
 
-
-
 static void message_received(void){
-    if(ether_can_get()){
-      ether_block_get(rx);
-      if(rx[0] == 'A' || rx[0] == 'B'){ //Missatge de confirmacio. Cridem TX
-        maquinaestatstx(wait);
-      }
-      else if(rx[0] == '0' || rx[0] == '1'){
-        maquinaestatsrx();
-      }
-    }
+  ether_block_get(rx);
+  if(rx[0] == 'A' || rx[0] == 'B'){ //Missatge de confirmacio. Cridem TX
+    maquinaestatstx(wait);
+  }
+  else if(rx[0] == '0' || rx[0] == '1'){
+    maquinaestatsrx();
+  }
 }
 
 static void timer(){
@@ -292,7 +288,6 @@ static void timer(){
 }
 static void start_timer(void){
   timer_timeout = timer_after(TIMER_MS(TIMEOUT),timeout); //Encenem el timer
-  on_message_received(message_received);
 }
 static void try_to_send(void){
   uint8_t r = rand() % 11; // Numero aleatori entre 0 i 10
