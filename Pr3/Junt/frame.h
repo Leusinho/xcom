@@ -8,8 +8,6 @@ typedef void (*frame_callback_t)(void);
 void frame_block_get(block_morse b);
 void on_frame_received(frame_callback_t l);
 
-typedef enum {transmissor,receptor} tipus;
-
 /* PART TX */
 
 typedef enum {send,wait} event;
@@ -19,7 +17,7 @@ bool frame_can_put(void);
 void frame_block_put(const block_morse b);
 
 typedef char missatge[32];
-typedef enum {WAIT0,WAIT1,WAITACK0,WAITACK1} maqestats;
+typedef enum {WAIT0,WAIT1,WAITACK0,WAITACK1} maqestatstx;
 
 /* ************************************************** */
 

@@ -2,10 +2,10 @@
 #include <avr/interrupt.h>
 #include <pbn.h>
 
-static block_morse rx;
 static missatge missatge_rx;
 static block_morse tx;
 static missatge missatge_tx;
+static block_morse rx;
 
 void getmessage(void){
 	frame_block_get(rx);
