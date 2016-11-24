@@ -12,8 +12,6 @@ main.o: frame.h -lpbn
 frame.o: frame.h error_morse_avr.h -lpbn
 error_morse_avr.o: error_morse_avr.h -lpbn
 
-
-
 .PHONY: clean veryclean
 clean:
 	rm -f *~ *.o *.s *.hex

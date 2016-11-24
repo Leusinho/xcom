@@ -15,9 +15,6 @@ frame_tx.o: frame_tx.h error_morse_avr.h -lpbn
 frame_rx.o: frame_rx.h error_morse_avr.h -lpbn
 error_morse_avr.o: error_morse_avr.h
 
-
-
-
 .PHONY: clean veryclean
 clean:
 	rm -f *~ *.o *.s *.hex

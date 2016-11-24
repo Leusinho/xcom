@@ -1,5 +1,5 @@
 #define TIMEOUT 5000
-#define DEBUGGER 0
+#define DEBUGGER 1
 #include "frame.h"
 #include "error_morse_avr.h"
 #include <stdlib.h>
